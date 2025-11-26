@@ -5,20 +5,20 @@
  *        behavior using State Design Pattern.
  * @version 0.1
  * @date 2025-11-23
- * 
+ *
  * @copyright Copyright (c) 2025
- * 
+ *
  */
-
 
 #ifndef CONTROLLER_HPP_
 #define CONTROLLER_HPP_
 
+#include <functional>
+#include <memory>
+
+#include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "geometry_msgs/msg/twist.hpp"
-#include <memory>
-#include <functional>
 
 /**
  * @brief Forward declaration of Controller class for State interface.
@@ -91,7 +91,8 @@ class Controller : public rclcpp::Node {
   void SetState(std::shared_ptr<State> state);
 
   /**
-   * @brief Compute the velocity command given the current state and sensor input.
+   * @brief Compute the velocity command given the current state and sensor
+   * input.
    *
    * Useful for unit testing: does not publish, just returns Twist.
    */

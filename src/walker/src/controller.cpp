@@ -1,14 +1,15 @@
 /**
  * @file controller.cpp
  * @author Siddhant
- * @brief Implementaion of Controller node for e-puck robot 
+ * @brief Implementaion of Controller node for e-puck robot
  * @version 0.1
  * @date 2025-11-23
- * 
+ *
  * @copyright Copyright (c) 2025
- * 
+ *
  */
 #include "walker/controller.hpp"
+
 #include <chrono>
 
 using namespace std::chrono_literals;
@@ -23,8 +24,8 @@ Controller::Controller(float obstacle_threshold, float clear_threshold)
 
   // Subscribe to LaserScan messages
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      "/scan", 10, std::bind(&Controller::ScanCallback, this,
-                             std::placeholders::_1));
+      "/scan", 10,
+      std::bind(&Controller::ScanCallback, this, std::placeholders::_1));
 
   // Publisher for velocity commands
   cmd_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
@@ -34,15 +35,16 @@ Controller::Controller(float obstacle_threshold, float clear_threshold)
   RCLCPP_INFO(this->get_logger(), "Initial state set to ForwardState");
 
   // Timer for control loop at 20 Hz
-  timer_ = this->create_wall_timer(
-      50ms, std::bind(&Controller::ControlLoop, this));
+  timer_ =
+      this->create_wall_timer(50ms, std::bind(&Controller::ControlLoop, this));
 }
 
 // LaserScan callback: stores center beam distance for state logic.
 void Controller::ScanCallback(
     const sensor_msgs::msg::LaserScan::SharedPtr msg) {
   last_scan_ = msg->ranges[msg->ranges.size() / 2];
-  RCLCPP_DEBUG(this->get_logger(), "LaserScan center reading: %.3f", last_scan_);
+  RCLCPP_DEBUG(this->get_logger(), "LaserScan center reading: %.3f",
+               last_scan_);
 }
 
 // Periodic control loop: delegates behavior to the active state.
@@ -70,7 +72,8 @@ geometry_msgs::msg::Twist Controller::ComputeCmd(float scan) {
   geometry_msgs::msg::Twist cmd;
   // Safety check.
   if (current_state_ == nullptr) {
-    RCLCPP_WARN(this->get_logger(), "ComputeCmd called with null current_state");
+    RCLCPP_WARN(this->get_logger(),
+                "ComputeCmd called with null current_state");
     return cmd;
   }
 
@@ -86,21 +89,22 @@ geometry_msgs::msg::Twist Controller::ComputeCmd(float scan) {
       // Drive forward.
       cmd.linear.x = 0.1;
       cmd.angular.z = 0.0;
-      RCLCPP_DEBUG(this->get_logger(), "Moving forward, linear.x=%.2f", cmd.linear.x);
+      RCLCPP_DEBUG(this->get_logger(), "Moving forward, linear.x=%.2f",
+                   cmd.linear.x);
     }
-  // RotateState logic.
+    // RotateState logic.
   } else if (dynamic_cast<RotateState*>(current_state_.get())) {
     // Rotate clockwise or counter-clockwise.
     cmd.linear.x = 0.0;
     cmd.angular.z = 0.2 * rotate_flag_;
-    RCLCPP_DEBUG(this->get_logger(),
-                 "Rotating in place, angular.z=%.2f", cmd.angular.z);
+    RCLCPP_DEBUG(this->get_logger(), "Rotating in place, angular.z=%.2f",
+                 cmd.angular.z);
     // When path becomes clear , switch back to ForwardState.
     if (scan > clear_threshold_) {
       RCLCPP_INFO(this->get_logger(),
                   "Path clear at %.3f m, switching to ForwardState", scan);
       SetState(std::make_shared<ForwardState>());
-      rotate_flag_ = -rotate_flag_; // Alternate direction each time.
+      rotate_flag_ = -rotate_flag_;  // Alternate direction each time.
     }
   }
 
@@ -115,7 +119,8 @@ void ForwardState::Execute(Controller* controller) {
   auto cmd = controller->ComputeCmd(controller->last_scan_);
   // Publish the velocity command.
   controller->cmd_pub_->publish(cmd);
-  RCLCPP_DEBUG(controller->get_logger(), "Published ForwardState cmd: linear=%.2f angular=%.2f",
+  RCLCPP_DEBUG(controller->get_logger(),
+               "Published ForwardState cmd: linear=%.2f angular=%.2f",
                cmd.linear.x, cmd.angular.z);
 }
 
@@ -125,7 +130,8 @@ void ForwardState::Execute(Controller* controller) {
 void RotateState::Execute(Controller* controller) {
   auto cmd = controller->ComputeCmd(controller->last_scan_);
   controller->cmd_pub_->publish(cmd);
-  RCLCPP_DEBUG(controller->get_logger(), "Published RotateState cmd: linear=%.2f angular=%.2f",
+  RCLCPP_DEBUG(controller->get_logger(),
+               "Published RotateState cmd: linear=%.2f angular=%.2f",
                cmd.linear.x, cmd.angular.z);
 }
 
@@ -137,7 +143,8 @@ int main(int argc, char** argv) {
   RCLCPP_INFO(rclcpp::get_logger("main"), "Starting Walker Controller node");
   // Spin the controller node.
   rclcpp::spin(std::make_shared<Controller>());
-  RCLCPP_INFO(rclcpp::get_logger("main"), "Shutting down Walker Controller node");
+  RCLCPP_INFO(rclcpp::get_logger("main"),
+              "Shutting down Walker Controller node");
   rclcpp::shutdown();
   return 0;
 }
